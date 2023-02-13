@@ -1,0 +1,50 @@
+---
+- name: Create a micro instance
+  hosts: localhost
+  gather_facts: false
+  vars:
+    keypair: ...
+    instance_type: t2.micro
+    security_group: ...
+    subnet_id: ...
+    image: ...
+    region: ...
+  tasks:
+    - name: Launch instance
+      ec2:
+         key_name: "{{ keypair }}"
+         group: "{{ security_group }}"
+         instance_type: "{{ instance_type }}"
+         image: "{{ image }}"
+         wait: true
+         region: "{{ region }}"
+         vpc_subnet_id: "{{ subnet_id }}"
+         assign_public_ip: yes
+         instance_tags:
+           Name: ansibleInstance
+           APP: vue2048
+      register: ec2
+
+    - name: Add new instance to host group
+      add_host:
+        hostname: "{{ item.public_ip }}"
+        groupname: launched
+      loop: "{{ ec2.instances }}"
+
+    - name: Wait for SSH to come up
+      delegate_to: "{{ item.public_dns_name }}"
+      wait_for_connection:
+        delay: 10
+        sleep: 5
+        timeout: 300
+      vars:
+        ansible_user: ec2-user
+      loop: "{{ ec2.instances }}"
+
+- name: Configure instance(s)
+  hosts: launched
+  become: true
+  gather_facts: true
+  vars:
+    ansible_user: ec2-user
+  tasks:
