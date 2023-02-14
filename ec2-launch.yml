@@ -11,23 +11,29 @@
     region: ...
   tasks:
     - name: Launch instance
-      ec2:
+      amazon.aws.ec2_instance:
          key_name: "{{ keypair }}"
-         group: "{{ security_group }}"
+         security_group: "{{ security_group }}"
          instance_type: "{{ instance_type }}"
-         image: "{{ image }}"
+         image_id: "{{ image }}"
+         state: running
          wait: true
          region: "{{ region }}"
          vpc_subnet_id: "{{ subnet_id }}"
-         assign_public_ip: yes
-         instance_tags:
+         network:
+           assign_public_ip: yes
+         tags:
            Name: ansibleInstance
            APP: vue2048
       register: ec2
 
+    - name: Print ec2_instance return information
+      ansible.builtin.debug:
+        var: ec2
+
     - name: Add new instance to host group
       add_host:
-        hostname: "{{ item.public_ip }}"
+        hostname: "{{ item.public_ip_address }}"
         groupname: launched
       loop: "{{ ec2.instances }}"
 
@@ -48,3 +54,5 @@
   vars:
     ansible_user: ec2-user
   tasks:
+    - name: Make sure server is reacheable
+      ping:

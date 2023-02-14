@@ -1,0 +1,10 @@
+---
+- hosts: all
+  become: true
+  vars:
+    ansible_user: ec2-user
+  tasks:
+    - name: Ping
+      ping:
+
+
